@@ -37,20 +37,34 @@ df = df.query("NU_IDADE >= @faixa_etaria[0] and NU_IDADE <= @faixa_etaria[1]")
 #-- Sexo
 expander_sexo = st.sidebar.beta_expander("Sexo", expanded=False)
 with expander_sexo:
-    #expander_sexo.markdown('#### Sexo')
     masculino = expander_sexo.checkbox('Masculino', value=True)
     feminino = expander_sexo.checkbox('Feminino', value=True)
+    if(masculino and feminino):
+        pass
+    if(masculino and not feminino):
+        df = df.query("TP_SEXO == 1")
+    if(not masculino and feminino):
+        df = df.query("TP_SEXO == 2")
+    if(not masculino and not feminino):
+        df = df.query("TP_SEXO != 1 and TP_SEXO != 2")
+    
 
 #-- Cor/Raça
 expander_raça = st.sidebar.beta_expander("Cor/Raça", expanded=False)
 with expander_raça:
     #st.sidebar.markdown('#### Cor/Raça')
     preta = expander_raça.checkbox('Preta', value=True)
+    if not preta: df = df.query("TP_COR_RACA != 2 ")
     parda = expander_raça.checkbox('Parda', value=True)
+    if not parda: df = df.query("TP_COR_RACA != 3 ")
     amarela = expander_raça.checkbox('Amarela', value=True)
+    if not amarela: df = df.query("TP_COR_RACA !=  4")
     indigena = expander_raça.checkbox('Indígena', value=True)
+    if not indigena: df = df.query("TP_COR_RACA != 5 ")
     branca = expander_raça.checkbox('Branca', value=True)
+    if not branca: df = df.query("TP_COR_RACA != 1 ")
     nao_declarada = indigena = expander_raça.checkbox('Não declarada', value=True)
+    if not nao_declarada: df = df.query("TP_COR_RACA != 0 ")
 
 
 #--Ensino Público/Privado
@@ -101,16 +115,28 @@ with expander_modalidade:
 #--Necessidade Especial
 expander_especial = st.sidebar.beta_expander("Necessidade Especial")
 with expander_especial:
+    check_nao_necessidade = expander_especial.checkbox('Não Possui Necessidade Especial', value = True)
+    if not check_nao_necessidade: df = df.query("IN_NECESSIDADE_ESPECIAL != 0")
     check_cegueira = expander_especial.checkbox('Cegueira', value = True)
+    if not check_cegueira: df = df.query("IN_CEGUEIRA != 1")
     check_baixa_visao = expander_especial.checkbox('Baixa Visão', value = True)
+    if not check_baixa_visao: df = df.query("IN_BAIXA_VISAO != 1")
     check_def_auditiva = expander_especial.checkbox('Deficiência Auditiva', value = True)
+    if not check_def_auditiva: df = df.query("IN_DEF_AUDITIVA != 1")
     check_def_fisica = expander_especial.checkbox('Deficiência Física', value = True) 
+    if not check_def_fisica: df = df.query("IN_DEF_FISICA != 1")
     check_def_int = expander_especial.checkbox('Deficiência Intelectual', value = True) 
+    if not check_def_int: df = df.query("IN_DEF_INTELECTUAL != 1")
     check_surdez = expander_especial.checkbox('Surdez', value = True) 
+    if not check_surdez: df = df.query("IN_SURDEZ != 1")
     check_super = expander_especial.checkbox('Super Dotação', value = True) 
+    if not check_super: df = df.query("IN_SUPERDOTACAO != 1")
     check_autismo = expander_especial.checkbox('Autismo', value = True) 
+    if not check_autismo: df = df.query("IN_AUTISMO != 1")
     check_def_mult = expander_especial.checkbox('Deficiência Múltipla', value = True) 
-    check_surdo_ceg = expander_especial.checkbox('Surdocegueira', value = True)  
+    if not check_def_mult: df = df.query("IN_DEF_MULTIPLA != 1")
+    check_surdo_ceg = expander_especial.checkbox('Surdocegueira', value = True)
+    if not check_surdo_ceg: df = df.query("IN_SURDOCEGUEIRA != 1")
 
 
 def get_dados_necessidades_especiais(df):
@@ -147,17 +173,20 @@ with row1_1:
 
 
 
-#capturar_filtros(df)
-
 row3_space1, row3_1, row3_space2, row3_2, row3_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
+
 
 with row3_1, _lock:
     st.subheader('Distribuição de Idade')
     media = df['NU_IDADE'].mean()
     std = df['NU_IDADE'].std()
     mediana = df['NU_IDADE'].median()
-    moda = df['NU_IDADE'].mode()[0]
+    moda = df['NU_IDADE'].mode()
+    if df['NU_IDADE'].mode().size > 0:
+        moda = moda[0]
+    else:
+        moda = 0  
     
     hist_idade, ax_hist_idade = plt.subplots()
     ax_hist_idade = sns.histplot(data=df, x="NU_IDADE_REFERENCIA")
@@ -186,8 +215,9 @@ row4_space1, row4_1, row4_space2, row4_2, row4_space3 = st.beta_columns(
 
 
 with row4_1, _lock:
+    index = (0,1,2,3,4, 5)
     st.subheader("Distribuição de Raça/Cor declarada")
-    data_raca = df.groupby("TP_COR_RACA")['TP_COR_RACA'].count()
+    data_raca = pd.Series(data = df.groupby("TP_COR_RACA")['TP_COR_RACA'].count(), index = index)
     total = data_raca.sum()
     labels_raca = ['Não declarada', 'Branca', 'Preta', 'Parda', 'Amarela', 'Indigena']
     graf_raca, ax_raca = plt.subplots()
@@ -201,8 +231,9 @@ with row4_1, _lock:
 
 
 with row4_2, _lock:
+    index = (1,2)
     st.subheader("Distribuição de Gênero Declarado ")
-    data_sexo = df.groupby("TP_SEXO")['TP_SEXO'].count()
+    data_sexo = pd.Series(df.groupby("TP_SEXO")['TP_SEXO'].count(), index = index)
     masc = data_sexo[1]
     fem = data_sexo[2]
     total = masc+fem
@@ -220,8 +251,9 @@ row5_space1, row5_1, row5_space2, row5_2, row5_space3 = st.beta_columns(
 
 
 with row5_1, _lock:
+    index = (1,2)
     st.subheader("Distribuição por Zona Residêncial")
-    data_regiao = df.groupby("TP_ZONA_RESIDENCIAL")['TP_ZONA_RESIDENCIAL'].count()
+    data_regiao = pd.Series(df.groupby("TP_ZONA_RESIDENCIAL")['TP_ZONA_RESIDENCIAL'].count(),index=index)
     graf_regiao, ax_regiao = plt.subplots()
     labels = ["Urbana ", "Rural"]
     ax_regiao = sns.barplot(x=data_regiao, y = labels)
@@ -231,8 +263,9 @@ with row5_1, _lock:
 
 
 with row5_2, _lock:
+    index = (0,1,2,3)
     st.subheader("Distribuição por Estudo em Localização Diferenciada")
-    data_local_diferenciado = df.groupby("TP_LOCALIZACAO_DIFERENCIADA")['TP_LOCALIZACAO_DIFERENCIADA'].count()
+    data_local_diferenciado = pd.Series(df.groupby("TP_LOCALIZACAO_DIFERENCIADA")['TP_LOCALIZACAO_DIFERENCIADA'].count(), index=index)
     labels = ["Não diferenciada ", "Área de assentamento", "Terra indígena", "Comunidade remanescente de quilombos"]
 
     graf_diferenciado, ax_diferenciado = plt.subplots()
@@ -248,8 +281,9 @@ row6_space1, row6_1, row6_space2, row6_2, row6_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
 
 with row6_1, _lock:
+    index = (0, 1)
     st.subheader("Alunos com Necessidades Especiais")
-    data_necessidade = df.groupby("IN_NECESSIDADE_ESPECIAL")['IN_NECESSIDADE_ESPECIAL'].count()
+    data_necessidade = pd.Series(df.groupby("IN_NECESSIDADE_ESPECIAL")['IN_NECESSIDADE_ESPECIAL'].count(), index=index)
     labels = ["Não ", "Sim"]
     graf_necessidade_1, ax_necessidade_1 = plt.subplots()
     ax_necessidade_1 = sns.barplot(x=data_necessidade, y = labels)
