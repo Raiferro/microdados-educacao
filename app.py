@@ -1,3 +1,4 @@
+from pandas.core.indexes.base import Index
 from matplotlib.backends.backend_agg import RendererAgg
 import streamlit as st
 import numpy as np
@@ -12,29 +13,30 @@ from PIL import Image
 import requests
 import matplotlib.pyplot as plt
 
+#-- Configura o estilo da pagina
 st.set_page_config(layout="wide")
-
 matplotlib.use("agg")
-
 _lock = RendererAgg.lock
 
+#-- Estilo dos Gráficos
+sns.set_style('darkgrid')
+sns.set_palette("dark:blue")
+
+#-- Carrega dos dados
 @st.cache
 def get_data():
      return(pd.read_csv('2020.csv'))
-
-
 df = get_data()
 
 st.sidebar.header("Filtrar Dados")
-#-- Define o ano da pesquisa
+#-- Filtro - Define o ano da pesquisa
 select_ano = st.sidebar.selectbox('Qual ano do deseja analisar?', ['2020'])
 
-#-- Escolhe a faixa etaria
+#-- Filtro - Escolhe a faixa etaria
 faixa_etaria = st.sidebar.slider('Faixa Etaria', min_value=0, max_value=100, value=(0,100))
 df = df.query("NU_IDADE >= @faixa_etaria[0] and NU_IDADE <= @faixa_etaria[1]")
 
-
-#-- Sexo
+#-- Filtro - Sexo
 expander_sexo = st.sidebar.beta_expander("Sexo", expanded=False)
 with expander_sexo:
     masculino = expander_sexo.checkbox('Masculino', value=True)
@@ -48,8 +50,7 @@ with expander_sexo:
     if(not masculino and not feminino):
         df = df.query("TP_SEXO != 1 and TP_SEXO != 2")
     
-
-#-- Cor/Raça
+#-- Filtro - Cor/Raça
 expander_raça = st.sidebar.beta_expander("Cor/Raça", expanded=False)
 with expander_raça:
     #st.sidebar.markdown('#### Cor/Raça')
@@ -66,15 +67,42 @@ with expander_raça:
     nao_declarada = indigena = expander_raça.checkbox('Não declarada', value=True)
     if not nao_declarada: df = df.query("TP_COR_RACA != 0 ")
 
-
-#--Ensino Público/Privado
+#-- Filtro - Ensino Público/Privado
 expander_publiparti= st.sidebar.beta_expander("Ensino Público/Privado")
 with expander_publiparti:
     #expander_modalidade.sidebar.markdown('#### Ensino Público/Privado')
     publico = expander_publiparti.checkbox('Público', value = True)
+    if not publico: df = df.query("TP_DEPENDENCIA == 4")
     privado = expander_publiparti.checkbox('Privado', value = True)
+    if not privado: df = df.query("TP_DEPENDENCIA != 4")
 
-#--Etapa de Ensino
+#-- Filtro - Necessidade Especial
+expander_especial = st.sidebar.beta_expander("Necessidade Especial")
+with expander_especial:
+    check_nao_necessidade = expander_especial.checkbox('Não Possui Necessidade Especial', value = True)
+    if not check_nao_necessidade: df = df.query("IN_NECESSIDADE_ESPECIAL != 0")
+    check_cegueira = expander_especial.checkbox('Cegueira', value = True)
+    if not check_cegueira: df = df.query("IN_CEGUEIRA != 1")
+    check_baixa_visao = expander_especial.checkbox('Baixa Visão', value = True)
+    if not check_baixa_visao: df = df.query("IN_BAIXA_VISAO != 1")
+    check_def_auditiva = expander_especial.checkbox('Deficiência Auditiva', value = True)
+    if not check_def_auditiva: df = df.query("IN_DEF_AUDITIVA != 1")
+    check_def_fisica = expander_especial.checkbox('Deficiência Física', value = True) 
+    if not check_def_fisica: df = df.query("IN_DEF_FISICA != 1")
+    check_def_int = expander_especial.checkbox('Deficiência Intelectual', value = True) 
+    if not check_def_int: df = df.query("IN_DEF_INTELECTUAL != 1")
+    check_surdez = expander_especial.checkbox('Surdez', value = True) 
+    if not check_surdez: df = df.query("IN_SURDEZ != 1")
+    check_super = expander_especial.checkbox('Super Dotação', value = True) 
+    if not check_super: df = df.query("IN_SUPERDOTACAO != 1")
+    check_autismo = expander_especial.checkbox('Autismo', value = True) 
+    if not check_autismo: df = df.query("IN_AUTISMO != 1")
+    check_def_mult = expander_especial.checkbox('Deficiência Múltipla', value = True) 
+    if not check_def_mult: df = df.query("IN_DEF_MULTIPLA != 1")
+    check_surdo_ceg = expander_especial.checkbox('Surdocegueira', value = True)
+    if not check_surdo_ceg: df = df.query("IN_SURDOCEGUEIRA != 1")
+
+#-- Filtro - Etapa de Ensino
 expander_modalidade = st.sidebar.beta_expander("Etapa de Ensino")
 with expander_modalidade:
     expander_modalidade.checkbox("Educação Infantil - Creche", value = True)
@@ -112,32 +140,6 @@ with expander_modalidade:
     expander_modalidade.checkbox("Curso FIC integrado na modalidade EJA - Nível Fundamental (EJA integrada à Educação Profissional de Nível Fundamental)", value = True)
     expander_modalidade.checkbox("Curso Técnico Integrado na Modalidade EJA (EJA integrada à Educação Profissional de Nível Médio)", value = True)
 
-#--Necessidade Especial
-expander_especial = st.sidebar.beta_expander("Necessidade Especial")
-with expander_especial:
-    check_nao_necessidade = expander_especial.checkbox('Não Possui Necessidade Especial', value = True)
-    if not check_nao_necessidade: df = df.query("IN_NECESSIDADE_ESPECIAL != 0")
-    check_cegueira = expander_especial.checkbox('Cegueira', value = True)
-    if not check_cegueira: df = df.query("IN_CEGUEIRA != 1")
-    check_baixa_visao = expander_especial.checkbox('Baixa Visão', value = True)
-    if not check_baixa_visao: df = df.query("IN_BAIXA_VISAO != 1")
-    check_def_auditiva = expander_especial.checkbox('Deficiência Auditiva', value = True)
-    if not check_def_auditiva: df = df.query("IN_DEF_AUDITIVA != 1")
-    check_def_fisica = expander_especial.checkbox('Deficiência Física', value = True) 
-    if not check_def_fisica: df = df.query("IN_DEF_FISICA != 1")
-    check_def_int = expander_especial.checkbox('Deficiência Intelectual', value = True) 
-    if not check_def_int: df = df.query("IN_DEF_INTELECTUAL != 1")
-    check_surdez = expander_especial.checkbox('Surdez', value = True) 
-    if not check_surdez: df = df.query("IN_SURDEZ != 1")
-    check_super = expander_especial.checkbox('Super Dotação', value = True) 
-    if not check_super: df = df.query("IN_SUPERDOTACAO != 1")
-    check_autismo = expander_especial.checkbox('Autismo', value = True) 
-    if not check_autismo: df = df.query("IN_AUTISMO != 1")
-    check_def_mult = expander_especial.checkbox('Deficiência Múltipla', value = True) 
-    if not check_def_mult: df = df.query("IN_DEF_MULTIPLA != 1")
-    check_surdo_ceg = expander_especial.checkbox('Surdocegueira', value = True)
-    if not check_surdo_ceg: df = df.query("IN_SURDOCEGUEIRA != 1")
-
 
 def get_dados_necessidades_especiais(df):
     df_necessidade_especial = df.query("IN_NECESSIDADE_ESPECIAL == 1")
@@ -154,7 +156,7 @@ def get_dados_necessidades_especiais(df):
     return cegueira, baixa_visao, auditiva, def_fisica, def_inte, surdez, superd, autismo, def_multipla, surdocegueira
 
 
-sns.set_style('darkgrid')
+#-- Cabeçalho
 row0_spacer1, row0_1, row0_spacer2, row0_2, row0_spacer3 = st.beta_columns(
     (.1, 2, .2, 1, .1))
 
@@ -168,15 +170,16 @@ row0_2.subheader(
 
 row1_spacer1, row1_1, row1_spacer2 = st.beta_columns((.1, 3.2, .1))
 
+#-- Indrodução
 with row1_1:
     st.markdown("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla dolor sapien, gravida a tellus non, tempus hendrerit mauris. Suspendisse non interdum libero.Nulla vel porttitor erat, ac auctor ligula. Ut suscipit neque et semper pretium. Nunc quis ultrices nisi. Pellentesque in lectus ut leo vestibulum fringilla vitae non quam. Duis tempus faucibus nisi, a mollis est scelerisque non. Vivamus porta at eros vel vestibulum. Nullam eget egestas mi.")
-
 
 
 row3_space1, row3_1, row3_space2, row3_2, row3_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
 
 
+#-- Grafico Distirbuição de Idade
 with row3_1, _lock:
     st.subheader('Distribuição de Idade')
     media = df['NU_IDADE'].mean()
@@ -195,7 +198,7 @@ with row3_1, _lock:
     st.pyplot(hist_idade)
     st.markdown("A média da idade dos alunos filtrados é **{0:.2f}**, com devio padrão de **{1:.2f}**, mediana **{2:.0f}** e moda **{3:.0f}**".format(media, std, mediana, moda))
 
-
+#-- Gráfico Boxplot
 with row3_2, _lock:
     st.subheader("Análise dos Quartis - Idade")
     boxplot, ax_boxplot = plt.subplots()
@@ -213,7 +216,7 @@ st.write('')
 row4_space1, row4_1, row4_space2, row4_2, row4_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
 
-
+#-- Gráfico Cor/Raça
 with row4_1, _lock:
     index = (0,1,2,3,4, 5)
     st.subheader("Distribuição de Raça/Cor declarada")
@@ -227,9 +230,7 @@ with row4_1, _lock:
     st.markdown("**{0:.2f}**% dos alunos não declararam cor/raça. **{1:.2f}**% declararam como ''preta''. **{2:.2f}**% declararam como ''branca''.  **{3:.2f}**% declararam como ''parda'', **{4:.2f}**% como ''amarela'' e **{5:.2f}**% como ''indigena''".format(
         (data_raca[0] / total * 100), (data_raca[1] / total * 100), (data_raca[2] / total * 100), (data_raca[3] / total * 100), (data_raca[4] / total * 100), (data_raca[5] / total * 100)))
 
-
-
-
+#-- Gráfico Gênero
 with row4_2, _lock:
     index = (1,2)
     st.subheader("Distribuição de Gênero Declarado ")
@@ -249,7 +250,7 @@ st.write('')
 row5_space1, row5_1, row5_space2, row5_2, row5_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
 
-
+#-- Gráfico Zona Residencial
 with row5_1, _lock:
     index = (1,2)
     st.subheader("Distribuição por Zona Residêncial")
@@ -261,7 +262,7 @@ with row5_1, _lock:
     st.pyplot(graf_regiao)
     st.markdown("**{0:.0f}({1:.2f}%)** dos alunos declaram que vivem em zona urbana e **{2:.0f}({3:.2f}%)** declaram viver em zona rural".format(data_regiao[1], data_regiao[1] / total * 100, data_regiao[2], data_regiao[2]/total * 100))
 
-
+#-- Gráfico Localização Diferenciada
 with row5_2, _lock:
     index = (0,1,2,3)
     st.subheader("Distribuição por Estudo em Localização Diferenciada")
@@ -280,6 +281,7 @@ st.write('')
 row6_space1, row6_1, row6_space2, row6_2, row6_space3 = st.beta_columns(
     (.1, 1, .1, 1, .1))
 
+#-- Gráfico Localização Diferenciada
 with row6_1, _lock:
     index = (0, 1)
     st.subheader("Alunos com Necessidades Especiais")
@@ -291,9 +293,7 @@ with row6_1, _lock:
     st.pyplot(graf_necessidade_1)
     st.markdown("**{0:.2f}%** do alunos não possuem necessidades especiais e **{1:.2f}%** dos alunos possuem algum tipo de necessidade especial".format(data_necessidade[0]/total * 100, data_necessidade[1]/total * 100) )
 
-
-
-
+#-- Gráfico Necessidade Especial
 with row6_2, _lock:
     st.subheader("Distribuição por Necessidade Especial")
     cegueira, baixa_visao, auditiva, def_fisica, def_inte, surdez, superd, autismo, def_multipla, surdocegueira = get_dados_necessidades_especiais(df)
@@ -303,14 +303,46 @@ with row6_2, _lock:
     }   
     quantidades_ne = pd.DataFrame(d)
     graf_necessidade_2, ax_necessidade_2 = plt.subplots()
-    ax_necessidade_2 = sns.barplot(data = quantidades_ne, x = 'Quantidade', y='Necessidade Esp.')
+    ax_necessidade_2 = sns.barplot(data = quantidades_ne, x = 'Quantidade', y='Necessidade Esp.', palette = "dark:blue")
     st.pyplot(graf_necessidade_2)
     st.markdown("**{}** alunos apresentam cegueira, **{}** alunos apresentam baixa visão, **{}** alunos apresentam deficiência auditiva, **{}** alunos apresentam deficiência física, **{}** alunos apresentam deficiência instelectual, **{}** alunos apresentam surdez, **{}** alunos apresentam superdotação, **{}** alunos apresentam autismo,**{}** alunos apresentam deficiência múltipla e **{}** alunos apresentam surdocegueira.".format(cegueira, baixa_visao, auditiva, def_fisica, def_inte, surdez, superd, autismo, def_multipla, surdocegueira))
 
+st.write('')
+row7_space1, row7_1, row7_space2, row7_2, row7_space3 = st.beta_columns(
+    (.1, 1, .1, 1, .1))
+
+#-- Gráfico Dependencia Escola
+with row7_1, _lock:
+    index = (1,2,3,4)
+    st.subheader("Distribuição por Depêndencia Administrativa da Escola")
+    labels = ["Federal", "Estadual", "Municipal", "Privada"]
+    data_particular = pd.Series(df.groupby("TP_DEPENDENCIA")['TP_DEPENDENCIA'].count(), index=index)
+    total = data_particular.sum()
+    graf_dep, ax_dep = plt.subplots()
+    ax_dep = sns.barplot(x= data_particular, y=labels)
+    ax_dep.set_xlabel("Contagem")
+    st.pyplot(graf_dep)
+    st.markdown(
+        """
+        **{:.0f}**(**{:.2f}%**) dos alunos estudam em escola administrada pelo governo federal, 
+        **{:.0f}**(**{:.2f}%**) dos alunos estudam em escola administrada pelo governo do estado, 
+        **{:.0f}**(**{:.2f}%**) dos alunos estudam em escola administrada pelo governo do municipal e 
+        **{:.0f}**(**{:.2f}%**) dos alunos estudam em escola particular.
+        """.format(data_particular[1], data_particular[1] / total * 100, data_particular[2], data_particular[2] / total * 100, data_particular[3], data_particular[3] / total * 100, data_particular[4], data_particular[4] / total * 100)
+    )
+
+#-- #-- Gráfico Creche/Pré-Escola
+with row7_2, _lock:
+    st.write("teste")
+
+row8_space1, row8_1, row8_space2 = st.beta_columns(
+    (.1, 1, .1))
 
 
-
-
+#-- 
+with row8_1, _lock:
+    st.markdown("""---""")
+    st.write("teste")
 
 
 
@@ -432,12 +464,4 @@ def capturar_filtros(df):
        check_surdo_ceg = expander_especial.checkbox('Surdocegueira', value = True)    
     
     
-    filtros_aplicados = st.sidebar.button('Filtrar')
-    #if filtros_aplicados:
-    #    if (masculino and feminino): pass
-    #    if(masculino and not feminino):
-    #        df = df.where(TP_SEXO == 1)
-    #    if(not masculino and feminino):
-    #        df = df.where(TP_SEXO == 2)
-    #    #df = df.where(df.NU_IDADE >= faixa_etaria[0] and df.NU_IDADE <= faixa_etaria[1])
-    #    filtrar_dados(df)
+    
